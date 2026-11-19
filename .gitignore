@@ -1,0 +1,51 @@
+﻿# Dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Backups
+*.security-backup
+*.backup
+*.bak
+
+# Editors
+.vscode/
+.idea/
+.DS_Store
+
+# Generated files
+src/generated/prisma/
+
+# AWS configuration files kept locally
+frontend/cloudfront-config.json
+backend/shopsphere-taskdef-*.json
+
+# Historical backup files
+*.backup*
+*.before-*
+*.bak
+
+# Generated backend JavaScript files
+backend/src/*.js
+backend/src/*.js.map
+backend/src/*.d.ts
+backend/src/*.d.ts.map
+
+# Old Prisma schemas
+backend/prisma/schema.backup.prisma
+backend/prisma/schema.before-*.prisma
+
+# Accidental temporary file
+frontend/$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
