@@ -59,6 +59,9 @@ This project demonstrates practical cloud deployment, containerization, database
 
 ## AWS Architecture
 
+![ShopSphere AWS Architecture](docs/images/architecture.png)
+
+
 ```text
                    Customer Browser
                           |
