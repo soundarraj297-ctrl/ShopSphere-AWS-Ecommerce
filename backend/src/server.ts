@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { rateLimit } from 'express-rate-limit';
 
 dotenv.config();
 
@@ -12,6 +13,36 @@ const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json());
+
+// Trust the single Application Load Balancer proxy.
+app.set('trust proxy', 1);
+
+// General API rate limiter.
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 120,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: 'Too many requests. Please try again later.'
+    }
+});
+
+// Stricter rate limiter for authentication endpoints.
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: 'Too many authentication attempts. Please try again later.'
+    }
+});
+
+app.use('/api', apiLimiter);
+app.use('/api/auth', authLimiter);
 
 const PORT = process.env.PORT || 5000;
 
@@ -28,6 +59,43 @@ function getJwtSecret(): string {
     }
 
     return secret;
+}
+
+function isValidEmail(value: string): boolean {
+    if (value.length > 254) return false;
+
+    const atIndex = value.indexOf('@');
+
+    if (atIndex <= 0 || atIndex !== value.lastIndexOf('@')) return false;
+
+    const local = value.slice(0, atIndex);
+    const domain = value.slice(atIndex + 1);
+
+    if (
+        local.length > 64 ||
+        domain.length > 253 ||
+        !domain.includes('.') ||
+        domain.startsWith('.') ||
+        domain.endsWith('.')
+    ) return false;
+
+    for (let i = 0; i < value.length; i++) {
+        const code = value.charCodeAt(i);
+        if (code <= 32 || code === 127) return false;
+    }
+
+    return true;
+}
+
+function isValidHttpUrl(value: string): boolean {
+    if (value.length > 2048) return false;
+
+    try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
 }
 
 // JWT AUTHENTICATION MIDDLEWARE
@@ -153,7 +221,7 @@ app.post('/api/auth/register', async (req, res) => {
             typeof name !== 'string' ||
             !name.trim() ||
             typeof email !== 'string' ||
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+            !isValidEmail(email) ||
             typeof password !== 'string' ||
             password.length < 8
         ) {
@@ -459,7 +527,7 @@ app.put('/api/products/:id/image', authenticateToken, requireAdmin, async (req, 
             !Number.isInteger(productId) ||
             productId <= 0 ||
             typeof imageUrl !== 'string' ||
-            !/^https?:\/\/.+/.test(imageUrl.trim())
+            !isValidHttpUrl(imageUrl.trim())
         ) {
             res.status(400).json({
                 success: false,
@@ -581,7 +649,7 @@ app.post('/api/orders', async (req, res) => {
                 typeof customerName !== 'string' ||
                 !customerName.trim() ||
                 typeof customerEmail !== 'string' ||
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())
+                !isValidEmail(customerEmail)
             )
         ) {
             res.status(400).json({
