@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
 # Environment variables and secrets
@@ -47,5 +47,6 @@ backend/src/*.d.ts.map
 backend/prisma/schema.backup.prisma
 backend/prisma/schema.before-*.prisma
 
-# Accidental temporary file
-frontend/$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+# Local CloudFormation backups
+cloudformation/*.backup.yaml

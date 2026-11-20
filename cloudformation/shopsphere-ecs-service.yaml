@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ShopSphere ECS Fargate Backend Service
+
+Parameters:
+  ClusterName:
+    Type: String
+    Description: Existing ECS cluster name
+
+  TaskDefinitionArn:
+    Type: String
+    Description: Existing ECS task definition ARN
+
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Fargate task security group
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets for Fargate tasks
+
+  TargetGroupArn:
+    Type: String
+    Description: Existing ALB target group ARN
+
+Resources:
+  ShopSphereBackendService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: shopsphere-backend-service
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref TaskDefinitionArn
+      DesiredCount: 1
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      SchedulingStrategy: REPLICA
+      HealthCheckGracePeriodSeconds: 90
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref SecurityGroupId
+          Subnets: !Ref SubnetIds
+      LoadBalancers:
+        - ContainerName: shopsphere-backend
+          ContainerPort: 5000
+          TargetGroupArn: !Ref TargetGroupArn
+      EnableECSManagedTags: true
+      Tags:
+        - Key: Project
+          Value: ShopSphere
